@@ -1,0 +1,6 @@
+---
+BasedOnStyle: Google
+Standard: c++20
+IncludeBlocks: Preserve
+AlignConsecutiveAssignments: Consecutive
+QualifierAlignment: Right
