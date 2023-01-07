@@ -20,11 +20,7 @@
 #include "utils/non_copyable.hpp"
 
 namespace simple_http::net {
-constexpr inline auto kDefaultPort = 8080;
-constexpr inline auto kMaxConn     = 16;
-constexpr inline auto kMaxEvents   = 32;
-constexpr inline auto kBufSize     = 16;
-constexpr inline auto kMaxLine     = 256;
+constexpr inline auto kBufSize = 16;
 
 struct TcpServer : public simple_http::util::NonCopyable {
  public:

@@ -31,7 +31,7 @@ void Epoll::Mod(int fd, uint32_t events) const {
   }
 }
 
-void Epoll::Del(int fd) const {
+void Epoll::Remove(int fd) const {
   if (::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr) == -1) {
     throw std::runtime_error("epoll_ctl() EPOLL_CTL_DEL");
   }

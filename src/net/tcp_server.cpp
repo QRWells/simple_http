@@ -1,9 +1,5 @@
 #include <array>
 #include <exception>
-
-#include <cstddef>
-#include <cstdio>
-#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -15,6 +11,8 @@
 #include "net/InetAddr.hpp"
 #include "net/epoll.hpp"
 #include "net/socket.hpp"
+
+#include "utils/msg_buffer.hpp"
 
 #include "tcp_server.hpp"
 
@@ -30,7 +28,7 @@ TcpServer::~TcpServer() { Stop(); }
 
 void TcpServer::Start() {
   std::vector<struct epoll_event> events;
-  std::array<char, kBufSize>      buf;
+  util::MsgBuffer                 buf{};
   InetAddr                        cli_addr{};
 
   running_.store(true, std::memory_order_release);
@@ -46,21 +44,21 @@ void TcpServer::Start() {
         epoll_.Add(conn_sock, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP);
       } else if ((event.events & EPOLLIN) != 0U) {  // handle read
         for (;;) {
-          bzero(buf.data(), buf.size());
-          auto n = read(event.data.fd, buf.data(), buf.size());
+          buf.Clear();
+          auto n = read(event.data.fd, buf.BeginWrite(), buf.WritableSize());
           if (n <= 0) {
             break;
           }
-          printf("[+] data: %s\n", buf.data());
-          write(event.data.fd, buf.data(), strlen(buf.data()));
+          std::cout << "[+] read " << n << " bytes" << std::endl;
+          write(event.data.fd, buf.Peek(), buf.ReadableSize());
         }
       } else {
-        printf("[+] unexpected\n");
+        std::cout << "[+] unexpected" << std::endl;
       }
       // check if the connection is closing
       if ((event.events & (EPOLLRDHUP | EPOLLHUP)) != 0U) {
-        printf("[+] connection closed\n");
-        epoll_.Del(event.data.fd);
+        std::cout << "[+] connection closed" << std::endl;
+        epoll_.Remove(event.data.fd);
         close(event.data.fd);
         continue;
       }

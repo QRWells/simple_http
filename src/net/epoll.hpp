@@ -14,7 +14,7 @@ struct Epoll : public simple_http::util::NonCopyable {
 
   void Add(int fd, uint32_t events) const;
   void Mod(int fd, uint32_t events) const;
-  void Del(int fd) const;
+  void Remove(int fd) const;
   void Wait(int timeout, std::vector<struct epoll_event> &events);
 
   [[nodiscard]] int GetFd() const noexcept { return epoll_fd_; }
