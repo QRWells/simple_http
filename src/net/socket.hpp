@@ -2,9 +2,7 @@
 
 #include <stdexcept>
 
-#include <netinet/in.h>
-#include <sys/socket.h>
-
+#include "net/InetAddr.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace simple_http::net {
@@ -21,11 +19,11 @@ struct Socket : public simple_http::util::NonCopyable {
     return {fd};
   }
 
-  [[nodiscard]] struct sockaddr_in GetLocalAddr() const;
-  [[nodiscard]] struct sockaddr_in GetPeerAddr() const;
+  [[nodiscard]] InetAddr GetLocalAddr() const;
+  [[nodiscard]] InetAddr GetPeerAddr() const;
 
-  [[nodiscard]] int Accept(struct sockaddr_in& peer_addr) const noexcept;
-  void              Bind(struct sockaddr_in const& addr) const;
+  [[nodiscard]] int Accept(InetAddr& peer_addr) const noexcept;
+  void              Bind(InetAddr const& addr) const;
   void              Listen() const;
   void              Shutdown() const;
 

@@ -1,13 +1,13 @@
-#include "socket.hpp"
-
 #include <stdexcept>
 
 #include <cstdlib>
 #include <cstring>
 
+#include <netinet/tcp.h>
 #include <unistd.h>
 
-#include <netinet/tcp.h>
+#include "net/InetAddr.hpp"
+#include "socket.hpp"
 
 namespace simple_http::net {
 
@@ -17,7 +17,7 @@ Socket::~Socket() {
   }
 }
 
-struct sockaddr_in Socket::GetLocalAddr() const {
+InetAddr Socket::GetLocalAddr() const {
   struct sockaddr_in localaddr;
   ::memset(&localaddr, 0, sizeof(localaddr));
 
@@ -26,10 +26,10 @@ struct sockaddr_in Socket::GetLocalAddr() const {
   if (::getsockname(fd_, static_cast<struct sockaddr *>((void *)(&localaddr)), &addrlen) < 0) {
     throw std::runtime_error("getsockname error");
   }
-  return localaddr;
+  return InetAddr{localaddr};
 }
 
-struct sockaddr_in Socket::GetPeerAddr() const {
+InetAddr Socket::GetPeerAddr() const {
   struct sockaddr_in peeraddr;
   ::memset(&peeraddr, 0, sizeof(peeraddr));
 
@@ -39,21 +39,26 @@ struct sockaddr_in Socket::GetPeerAddr() const {
     throw std::runtime_error("getpeername error");
   }
 
-  return peeraddr;
+  return InetAddr{peeraddr};
 }
 
-int Socket::Accept(struct sockaddr_in &peer_addr) const noexcept {
-  socklen_t size = sizeof(peer_addr);
-  memset(&peer_addr, 0, sizeof(peer_addr));
+int Socket::Accept(InetAddr &peer_addr) const noexcept {
+  struct sockaddr_in addr;
+  socklen_t          size = sizeof(addr);
+  memset(&addr, 0, sizeof(addr));
 
-  int connfd = ::accept4(fd_, (struct sockaddr *)&peer_addr, &size, SOCK_NONBLOCK | SOCK_CLOEXEC);
+  int connfd = ::accept4(fd_, (struct sockaddr *)&addr, &size, SOCK_NONBLOCK | SOCK_CLOEXEC);
+
+  if (connfd >= 0) {
+    peer_addr.SetSockAddr(addr);
+  }
 
   return connfd;
 }
 
-void Socket::Bind(struct sockaddr_in const &addr) const {
+void Socket::Bind(InetAddr const &addr) const {
   int ret;
-  ret = ::bind(fd_, static_cast<const struct sockaddr *>((void *)(&addr)), sizeof(sockaddr_in));
+  ret = ::bind(fd_, addr.GetSockAddr(), sizeof(sockaddr_in));
 
   if (ret != 0) {
     throw std::runtime_error("bind error");

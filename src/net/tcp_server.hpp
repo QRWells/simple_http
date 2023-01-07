@@ -14,6 +14,7 @@
 #include <atomic>
 #include <cstdint>
 
+#include "net/InetAddr.hpp"
 #include "net/epoll.hpp"
 #include "net/socket.hpp"
 #include "utils/non_copyable.hpp"
@@ -34,9 +35,9 @@ struct TcpServer : public simple_http::util::NonCopyable {
   void Stop();
 
  private:
-  std::atomic_bool   running_{false};
-  struct sockaddr_in addr_ {};
-  Socket             listen_socket_;
-  Epoll              epoll_;
+  std::atomic_bool running_{false};
+  InetAddr         addr_{};
+  Socket           listen_socket_;
+  Epoll            epoll_;
 };
 }  // namespace simple_http::net

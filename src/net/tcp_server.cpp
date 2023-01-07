@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <vector>
 
 #include <arpa/inet.h>
@@ -11,6 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "net/InetAddr.hpp"
 #include "net/epoll.hpp"
 #include "net/socket.hpp"
 
@@ -18,15 +20,7 @@
 
 namespace simple_http::net {
 
-static void SetSockaddr(struct sockaddr_in &addr, uint16_t port = kDefaultPort) {
-  bzero(&addr, sizeof(struct sockaddr_in));
-  addr.sin_family      = AF_INET;
-  addr.sin_addr.s_addr = INADDR_ANY;
-  addr.sin_port        = htons(port);
-}
-
-TcpServer::TcpServer(uint16_t port) : listen_socket_(Socket::CreateNonBlockingSocket()) {
-  SetSockaddr(addr_, port);
+TcpServer::TcpServer(uint16_t port) : listen_socket_(Socket::CreateNonBlockingSocket()), addr_(port) {
   listen_socket_.Bind(addr_);
   listen_socket_.Listen();
   epoll_.Add(listen_socket_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET);
@@ -37,7 +31,7 @@ TcpServer::~TcpServer() { Stop(); }
 void TcpServer::Start() {
   std::vector<struct epoll_event> events;
   std::array<char, kBufSize>      buf;
-  struct sockaddr_in              cli_addr {};
+  InetAddr                        cli_addr{};
 
   running_.store(true, std::memory_order_release);
 
@@ -47,8 +41,7 @@ void TcpServer::Start() {
       if (event.data.fd == listen_socket_.GetFd()) {  // handle new connection
         auto conn_sock = listen_socket_.Accept(cli_addr);
 
-        inet_ntop(AF_INET, (char *)&(cli_addr.sin_addr), buf.data(), sizeof(cli_addr));
-        printf("[+] connected with %s:%d\n", buf.data(), ntohs(cli_addr.sin_port));
+        std::cout << "[+] connected with " << cli_addr.ToIpPort() << std::endl;
 
         epoll_.Add(conn_sock, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP);
       } else if ((event.events & EPOLLIN) != 0U) {  // handle read
