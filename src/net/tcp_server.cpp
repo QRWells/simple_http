@@ -4,27 +4,19 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <netdb.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "net/epoll.hpp"
+#include "net/socket.hpp"
 
 #include "tcp_server.hpp"
 
 namespace simple_http::net {
-static void EpollCtlAdd(int epfd, int fd, uint32_t events) {
-  struct epoll_event ev {};
-  ev.events  = events;
-  ev.data.fd = fd;
-  if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-    perror("epoll_ctl()\n");
-    std::terminate();
-  }
-}
 
 static void SetSockaddr(struct sockaddr_in &addr, uint16_t port = kDefaultPort) {
   bzero(&addr, sizeof(struct sockaddr_in));
@@ -33,70 +25,56 @@ static void SetSockaddr(struct sockaddr_in &addr, uint16_t port = kDefaultPort) 
   addr.sin_port        = htons(port);
 }
 
-static int Setnonblocking(int sockfd) {
-  if (fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD, 0) | O_NONBLOCK) == -1) {
-    return -1;
-  }
-  return 0;
+TcpServer::TcpServer(uint16_t port) : listen_socket_(Socket::CreateNonBlockingSocket()) {
+  SetSockaddr(addr_, port);
+  listen_socket_.Bind(addr_);
+  listen_socket_.Listen();
+  epoll_.Add(listen_socket_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET);
 }
 
-TcpServer::TcpServer(uint16_t port) : port_(port) {}
+TcpServer::~TcpServer() { Stop(); }
 
-void TcpServer::Start() const {
-  int                                        epfd        = 0;
-  int                                        nfds        = 0;
-  int                                        listen_sock = 0;
-  int                                        conn_sock   = 0;
-  socklen_t                                  socklen     = 0;
-  std::array<char, kBufSize>                 buf;
-  struct sockaddr_in                         srv_addr {};
-  struct sockaddr_in                         cli_addr {};
-  std::array<struct epoll_event, kMaxEvents> events;
+void TcpServer::Start() {
+  std::vector<struct epoll_event> events;
+  std::array<char, kBufSize>      buf;
+  struct sockaddr_in              cli_addr {};
 
-  listen_sock = socket(AF_INET, SOCK_STREAM, 0);
+  running_.store(true, std::memory_order_release);
 
-  SetSockaddr(srv_addr, port_);
-  auto res = bind(listen_sock, reinterpret_cast<struct sockaddr *>(&srv_addr), sizeof(srv_addr));
-
-  Setnonblocking(listen_sock);
-  listen(listen_sock, kMaxConn);
-
-  epfd = epoll_create(1);
-  EpollCtlAdd(epfd, listen_sock, EPOLLIN | EPOLLOUT | EPOLLET);
-
-  socklen = sizeof(cli_addr);
-  for (;;) {
-    nfds = epoll_wait(epfd, events.data(), kMaxEvents, -1);
-    for (auto i = 0; i < nfds; i++) {
-      if (events[i].data.fd == listen_sock) {  // handle new connection
-        conn_sock = accept4(listen_sock, reinterpret_cast<struct sockaddr *>(&cli_addr), &socklen,
-                            SOCK_NONBLOCK | SOCK_CLOEXEC);
+  while (running_.load(std::memory_order_acquire)) {
+    epoll_.Wait(-1, events);
+    for (auto event : events) {
+      if (event.data.fd == listen_socket_.GetFd()) {  // handle new connection
+        auto conn_sock = listen_socket_.Accept(cli_addr);
 
         inet_ntop(AF_INET, (char *)&(cli_addr.sin_addr), buf.data(), sizeof(cli_addr));
         printf("[+] connected with %s:%d\n", buf.data(), ntohs(cli_addr.sin_port));
 
-        EpollCtlAdd(epfd, conn_sock, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP);
-      } else if ((events[i].events & EPOLLIN) != 0U) {  // handle read
+        epoll_.Add(conn_sock, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP);
+      } else if ((event.events & EPOLLIN) != 0U) {  // handle read
         for (;;) {
           bzero(buf.data(), buf.size());
-          auto n = read(events.at(i).data.fd, buf.data(), buf.size());
+          auto n = read(event.data.fd, buf.data(), buf.size());
           if (n <= 0) {
             break;
           }
           printf("[+] data: %s\n", buf.data());
-          write(events.at(i).data.fd, buf.data(), strlen(buf.data()));
+          write(event.data.fd, buf.data(), strlen(buf.data()));
         }
       } else {
         printf("[+] unexpected\n");
       }
       // check if the connection is closing
-      if ((events[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0U) {
+      if ((event.events & (EPOLLRDHUP | EPOLLHUP)) != 0U) {
         printf("[+] connection closed\n");
-        epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, nullptr);
-        close(events[i].data.fd);
+        epoll_.Del(event.data.fd);
+        close(event.data.fd);
         continue;
       }
     }
   }
 }
+
+void TcpServer::Stop() { running_.store(false, std::memory_order_release); }
+
 }  // namespace simple_http::net

@@ -11,8 +11,11 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 
+#include "net/epoll.hpp"
+#include "net/socket.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace simple_http::net {
@@ -27,9 +30,13 @@ struct TcpServer : public simple_http::util::NonCopyable {
   TcpServer(uint16_t port);
   ~TcpServer();
 
-  void Start() const;
+  void Start();
+  void Stop();
 
  private:
-  uint16_t port_;
+  std::atomic_bool   running_{false};
+  struct sockaddr_in addr_ {};
+  Socket             listen_socket_;
+  Epoll              epoll_;
 };
 }  // namespace simple_http::net
