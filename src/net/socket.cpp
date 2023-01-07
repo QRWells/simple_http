@@ -6,7 +6,7 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 
-#include "net/InetAddr.hpp"
+#include "net/inet_addr.hpp"
 #include "socket.hpp"
 
 namespace simple_http::net {

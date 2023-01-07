@@ -13,9 +13,12 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 
-#include "net/InetAddr.hpp"
+#include "net/acceptor.hpp"
+#include "net/channel.hpp"
 #include "net/epoll.hpp"
+#include "net/inet_addr.hpp"
 #include "net/socket.hpp"
 #include "utils/non_copyable.hpp"
 
@@ -31,9 +34,12 @@ struct TcpServer : public simple_http::util::NonCopyable {
   void Stop();
 
  private:
+  std::string      name_{};
   std::atomic_bool running_{false};
   InetAddr         addr_{};
   Socket           listen_socket_;
   Epoll            epoll_;
+
+  std::unique_ptr<Acceptor> acceptor_{nullptr};
 };
 }  // namespace simple_http::net

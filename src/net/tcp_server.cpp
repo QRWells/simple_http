@@ -3,14 +3,12 @@
 #include <iostream>
 #include <vector>
 
+#include <csignal>
+
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "net/InetAddr.hpp"
-#include "net/epoll.hpp"
-#include "net/socket.hpp"
 
 #include "utils/msg_buffer.hpp"
 
@@ -22,6 +20,8 @@ TcpServer::TcpServer(uint16_t port) : listen_socket_(Socket::CreateNonBlockingSo
   listen_socket_.Bind(addr_);
   listen_socket_.Listen();
   epoll_.Add(listen_socket_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET);
+
+  ::signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
 }
 
 TcpServer::~TcpServer() { Stop(); }

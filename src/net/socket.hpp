@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "net/InetAddr.hpp"
+#include "net/inet_addr.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace simple_http::net {
