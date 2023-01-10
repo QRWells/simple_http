@@ -17,25 +17,29 @@ Socket::~Socket() {
   }
 }
 
-InetAddr Socket::GetLocalAddr() const {
+InetAddr Socket::GetLocalAddr() const { return GetLocalAddr(fd_); }
+
+InetAddr Socket::GetPeerAddr() const { return GetPeerAddr(fd_); }
+
+InetAddr Socket::GetLocalAddr(int fd) {
   struct sockaddr_in localaddr;
   ::memset(&localaddr, 0, sizeof(localaddr));
 
   auto addrlen = static_cast<socklen_t>(sizeof localaddr);
 
-  if (::getsockname(fd_, static_cast<struct sockaddr *>((void *)(&localaddr)), &addrlen) < 0) {
+  if (::getsockname(fd, static_cast<struct sockaddr *>((void *)(&localaddr)), &addrlen) < 0) {
     throw std::runtime_error("getsockname error");
   }
   return InetAddr{localaddr};
 }
 
-InetAddr Socket::GetPeerAddr() const {
+InetAddr Socket::GetPeerAddr(int fd) {
   struct sockaddr_in peeraddr;
   ::memset(&peeraddr, 0, sizeof(peeraddr));
 
   auto addrlen = static_cast<socklen_t>(sizeof peeraddr);
 
-  if (::getpeername(fd_, static_cast<struct sockaddr *>((void *)(&peeraddr)), &addrlen) < 0) {
+  if (::getpeername(fd, static_cast<struct sockaddr *>((void *)(&peeraddr)), &addrlen) < 0) {
     throw std::runtime_error("getpeername error");
   }
 

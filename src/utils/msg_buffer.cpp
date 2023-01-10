@@ -1,5 +1,8 @@
 #include <stdexcept>
 
+#include <netinet/in.h>
+#include <sys/uio.h>
+
 #include "msg_buffer.hpp"
 
 namespace simple_http::util {
@@ -31,6 +34,27 @@ std::span<char const> MsgBuffer::Read(std::size_t size) {
   auto ret = std::span<char const>(Peek(), size);
   head_    += size;
   return ret;
+}
+
+ssize_t MsgBuffer::ReadFile(int fd, int* saved_errno) {
+  char         ext_buffer[8192];  // NOLINT
+  struct iovec vec[2];            // NOLINT
+  size_t       writable = WritableSize();
+  vec[0].iov_base       = Begin() + tail_;
+  vec[0].iov_len        = static_cast<int>(writable);
+  vec[1].iov_base       = ext_buffer;
+  vec[1].iov_len        = sizeof(ext_buffer);
+  int const iovcnt      = (writable < sizeof ext_buffer) ? 2 : 1;
+  ssize_t   n           = ::readv(fd, vec, iovcnt);
+  if (n < 0) {
+    *saved_errno = errno;
+  } else if (static_cast<size_t>(n) <= writable) {
+    tail_ += n;
+  } else {
+    tail_ = buffer_.size();
+    Write(ext_buffer, n - writable);
+  }
+  return n;
 }
 
 void MsgBuffer::EnsureSize(std::size_t size) {

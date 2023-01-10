@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <concepts>
 #include <span>
@@ -7,6 +8,8 @@
 #include <vector>
 
 #include <cstddef>
+
+#include <sys/types.h>
 
 namespace simple_http::util {
 
@@ -26,6 +29,7 @@ struct MsgBuffer {
   [[nodiscard]] char*                 BeginWrite() { return Begin() + tail_; }
 
   [[nodiscard]] std::span<char const> Read(std::size_t size);
+  [[nodiscard]] ssize_t               ReadFile(int fd, int* saved_errno);
 
   template <std::integral T>
   [[nodiscard]] T Read() {
@@ -48,6 +52,16 @@ struct MsgBuffer {
     Write(reinterpret_cast<char const*>(&data), sizeof(T));
   }
 
+  void RetrieveAll() { tail_ = head_ = 0; }
+  void RetrieveUntil(char const* end) { Retrieve(end - Peek()); }
+  void Retrieve(std::size_t size) {
+    if (size >= ReadableSize()) {
+      RetrieveAll();
+      return;
+    }
+    head_ += size;
+  }
+
   void EnsureSize(std::size_t size);
   void Compact();
   void Clear() {
@@ -60,6 +74,13 @@ struct MsgBuffer {
     swap(head_, other.head_);
     swap(tail_, other.tail_);
     buffer_.swap(other.buffer_);
+  }
+
+  [[nodiscard]] char const* FindCRLF() const {
+    static constexpr auto kCRLF = "\r\n";
+    //
+    auto const* it = std::search(Peek(), BeginWrite(), kCRLF, kCRLF + 2);
+    return it == BeginWrite() ? nullptr : it;
   }
 
  private:
