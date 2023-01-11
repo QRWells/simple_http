@@ -11,3 +11,4 @@ set_languages("c++20")
 
 includes("test")
 includes("src")
+includes("example")
