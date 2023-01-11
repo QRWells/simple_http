@@ -1,8 +1,13 @@
 #include "sys/poll.h"
 
 #include "channel.hpp"
+#include "event_loop.hpp"
 
 namespace simple_http::net {
+
+void Channel::Update() { event_loop_->UpdateChannel(this); }
+void Channel::Remove() { event_loop_->RemoveChannel(this); }
+
 void Channel::HandleEvent() {
   if (enabled_events_ == kNoneEvent) {
     return;

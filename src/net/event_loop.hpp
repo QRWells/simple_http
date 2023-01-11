@@ -12,10 +12,10 @@
 // TODO: support schedule task
 
 namespace simple_http::net {
-struct Epoller;
+struct Epoll;
 struct Channel;
 
-using ChannelList = std::vector<std::shared_ptr<Channel>>;
+using ChannelList = std::vector<Channel*>;
 using Func        = std::function<void()>;
 
 /**
@@ -36,19 +36,20 @@ struct EventLoop : public simple_http::util::NonCopyable {
   void WakeUp() const;
 
   void RunInLoop(Func func);
+  void QueueInLoop(Func func);
 
-  void UpdateChannel(std::shared_ptr<Channel> const& channel);
-  void RemoveChannel(std::shared_ptr<Channel> const& channel);
+  void UpdateChannel(Channel* channel);
+  void RemoveChannel(Channel* channel);
 
  private:
   std::atomic_bool running_{false};
   std::atomic_bool quit_{false};
   std::thread::id  thread_id_;
 
-  std::unique_ptr<Epoller> epoller_;
+  std::unique_ptr<Epoll> epoller_;
 
-  ChannelList              active_channels_;
-  std::shared_ptr<Channel> current_active_channel_{nullptr};
+  ChannelList active_channels_;
+  Channel*    current_active_channel_{nullptr};
 
   int                      wakeup_fd_;
   std::unique_ptr<Channel> wakeup_channel_;

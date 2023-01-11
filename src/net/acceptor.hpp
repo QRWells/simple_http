@@ -14,7 +14,7 @@ using NewConnectionHandler = std::function<void(int fd, InetAddr const &)>;
 
 struct Acceptor : public simple_http::util::NonCopyable {
  public:
-  Acceptor(std::shared_ptr<EventLoop> &loop, InetAddr const &addr, bool reuse_addr = true, bool reuse_port = true);
+  Acceptor(EventLoop *loop, InetAddr const &addr, bool reuse_addr = true, bool reuse_port = true);
   ~Acceptor();
 
   [[nodiscard]] InetAddr const &GetAddr() const;
@@ -24,10 +24,10 @@ struct Acceptor : public simple_http::util::NonCopyable {
   void Listen();
 
  private:
-  Socket                     socket_;
-  InetAddr                   addr_;
-  std::shared_ptr<EventLoop> loop_;
-  Channel                    channel_;
-  NewConnectionHandler       new_connection_handler_;
+  Socket               socket_;
+  InetAddr             addr_;
+  EventLoop           *loop_;
+  Channel              channel_;
+  NewConnectionHandler new_connection_handler_;
 };
 }  // namespace simple_http::net

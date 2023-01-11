@@ -29,14 +29,14 @@ struct EventLoopThread : public simple_http::util::NonCopyable {
   explicit EventLoopThread(std::string_view thread_name = "EventLoopThread");
   ~EventLoopThread();
 
-  void Wait();
   void Run();
+  void Wait();
 
-  [[nodiscard]] EventLoop *GetLoop() const { return loop_.load(std::memory_order_acquire).get(); }
+  [[nodiscard]] EventLoop *GetLoop() const { return loop_.get(); }
 
  private:
-  std::atomic<std::shared_ptr<EventLoop>> loop_{nullptr};
-  std::mutex                              loopMutex_;
+  std::shared_ptr<EventLoop> loop_{nullptr};
+  std::mutex                 loopMutex_;
 
   std::string                              loopThreadName_;
   std::promise<std::shared_ptr<EventLoop>> promiseForLoopPointer_;
@@ -45,6 +45,6 @@ struct EventLoopThread : public simple_http::util::NonCopyable {
   std::once_flag                           once_;
   std::thread                              thread_;
 
-  void LoopFuncs();
+  void Loop();
 };
 }  // namespace simple_http::net

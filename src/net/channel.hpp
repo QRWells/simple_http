@@ -3,13 +3,15 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <utility>
 
 #include <sys/epoll.h>
 
-#include "net/event_loop.hpp"
 #include "utils/non_copyable.hpp"
 
 namespace simple_http::net {
+struct EventLoop;
+
 enum class ChannelState {
   kNew,
   kAdded,
@@ -17,8 +19,8 @@ enum class ChannelState {
 };
 struct Channel : public ::simple_http::util::NonCopyable, public std::enable_shared_from_this<Channel> {
  public:
+  // Channel(EventLoop* event_loop, int fd) : fd_(fd), event_loop_(event_loop) {}
   Channel(EventLoop* event_loop, int fd) : fd_(fd), event_loop_(event_loop) {}
-  Channel(std::shared_ptr<EventLoop> event_loop, int fd) : fd_(fd), event_loop_(event_loop) {}  // NOLINT
 
   using EventHandler = std::function<void()>;
 
@@ -69,8 +71,8 @@ struct Channel : public ::simple_http::util::NonCopyable, public std::enable_sha
     Update();
   }
 
-  void Update() { event_loop_->UpdateChannel(shared_from_this()); }
-  void Remove() { event_loop_->RemoveChannel(shared_from_this()); }
+  void Update();
+  void Remove();
 
   [[nodiscard]] uint32_t GetOccurredEvents() const { return occurred_events_; }
   void                   SetOccurredEvents(uint32_t occurred_events) { occurred_events_ = occurred_events; }
@@ -93,7 +95,7 @@ struct Channel : public ::simple_http::util::NonCopyable, public std::enable_sha
 
   ChannelState state_{ChannelState::kNew};
 
-  std::shared_ptr<EventLoop> event_loop_;
+  EventLoop* event_loop_;
 
   EventHandler readEventHandler_;
   EventHandler writeEventHandler_;

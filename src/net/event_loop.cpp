@@ -3,11 +3,14 @@
 #include <memory>
 
 #include <cstdlib>
+#include <utility>
 
 #include <sys/eventfd.h>
 #include <unistd.h>
 
-#include "epoller.hpp"
+#include "net/channel.hpp"
+#include "net/epoll.hpp"
+
 #include "event_loop.hpp"
 
 namespace simple_http::net {
@@ -25,7 +28,7 @@ EventLoop::EventLoop()
     : running_(false),
       quit_(false),
       thread_id_(std::this_thread::get_id()),
-      epoller_(std::make_unique<Epoller>(this)),
+      epoller_(std::make_unique<Epoll>(this)),
       wakeup_fd_(CreateEventfd()),
       wakeup_channel_(std::make_unique<Channel>(this, wakeup_fd_)) {
   if (t_loop_in_this_thread != nullptr) {
@@ -83,14 +86,22 @@ void EventLoop::WakeUp() const {
 }
 
 void EventLoop::RunInLoop(Func func) {
+  if (IsInLoopThread()) {
+    func();
+  } else {
+    QueueInLoop(std::forward<Func>(func));
+  }
+}
+
+void EventLoop::QueueInLoop(Func func) {
   pending_func_queue_.Enqueue(std::move(func));
-  if (!IsInLoopThread() or running_.load(std::memory_order_acquire)) {
+  if (!IsInLoopThread() or !running_.load(std::memory_order_acquire)) {
     WakeUp();
   }
 }
 
-void EventLoop::UpdateChannel(std::shared_ptr<Channel> const& channel) { epoller_->UpdateChannel(channel); }
-void EventLoop::RemoveChannel(std::shared_ptr<Channel> const& channel) { epoller_->RemoveChannel(channel); }
+void EventLoop::UpdateChannel(Channel* channel) { epoller_->UpdateChannel(channel); }
+void EventLoop::RemoveChannel(Channel* channel) { epoller_->RemoveChannel(channel); }
 
 void EventLoop::InvokeRunInLoopFuncs() {
   while (!pending_func_queue_.Empty()) {

@@ -12,9 +12,9 @@
 namespace simple_http::net {
 struct EventLoopGroup : public simple_http::util::NonCopyable {
  public:
-  EventLoopGroup(size_t num_event_loops = std::thread::hardware_concurrency()) : event_loops_(num_event_loops) {
+  EventLoopGroup(size_t num_event_loops = std::thread::hardware_concurrency()) {
     for (int i = 0; i < num_event_loops; ++i) {
-      event_loops_.emplace_back(std::make_shared<EventLoopThread>());
+      event_loops_.emplace_back(std::make_unique<EventLoopThread>("EventLoop-" + std::to_string(i)));
     }
   }
 
@@ -36,8 +36,11 @@ struct EventLoopGroup : public simple_http::util::NonCopyable {
 
   EventLoop* GetNextEventLoop() {
     if (!event_loops_.empty()) {
-      auto* loop = event_loops_[next_event_loop_.fetch_add(1)]->GetLoop();
-      next_event_loop_.store(next_event_loop_.load() % event_loops_.size());
+      auto  next = next_event_loop_.fetch_add(1);
+      auto* loop = event_loops_[next]->GetLoop();
+      if (next_event_loop_ >= event_loops_.size()) {
+        next_event_loop_.store(0);
+      }
       return loop;
     }
     return nullptr;
@@ -52,6 +55,6 @@ struct EventLoopGroup : public simple_http::util::NonCopyable {
 
  private:
   std::atomic_size_t                            next_event_loop_{0};
-  std::vector<std::shared_ptr<EventLoopThread>> event_loops_;
+  std::vector<std::unique_ptr<EventLoopThread>> event_loops_;
 };
 }  // namespace simple_http::net
