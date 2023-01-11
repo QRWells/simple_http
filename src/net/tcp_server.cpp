@@ -1,6 +1,7 @@
 #include <array>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <csignal>
@@ -10,62 +11,99 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "net/event_loop.hpp"
+#include "net/inet_addr.hpp"
+#include "net/socket.hpp"
+#include "net/tcp_connection.hpp"
 #include "utils/msg_buffer.hpp"
 
 #include "tcp_server.hpp"
 
 namespace simple_http::net {
 
-TcpServer::TcpServer(uint16_t port) : listen_socket_(Socket::CreateNonBlockingSocket()), addr_(port) {
-  listen_socket_.Bind(addr_);
-  listen_socket_.Listen();
-  epoll_.Add(listen_socket_.GetFd(), EPOLLIN | EPOLLOUT | EPOLLET);
-
+TcpServer::TcpServer(EventLoop *event_loop, InetAddr const &addr, size_t thread_num)
+    : addr_(addr),
+      event_loop_(event_loop),
+      acceptor_(std::make_unique<Acceptor>(event_loop, addr_, true, true)),
+      receive_message_handler_([](std::shared_ptr<TcpConnection> const &conn, util::MsgBuffer &msg) {
+        conn->Send(msg);
+        msg.RetrieveAll();
+      }) {
   ::signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE
+
+  acceptor_->OnNewConnection([this](int fd, InetAddr const &addr) { this->HandleNewConnection(fd, addr); });
 }
 
-TcpServer::~TcpServer() { Stop(); }
+TcpServer::~TcpServer() = default;
 
 void TcpServer::Start() {
-  std::vector<struct epoll_event> events;
-  util::MsgBuffer                 buf{};
-  InetAddr                        cli_addr{};
-
-  running_.store(true, std::memory_order_release);
-
-  while (running_.load(std::memory_order_acquire)) {
-    epoll_.Wait(-1, events);
-    for (auto event : events) {
-      if (event.data.fd == listen_socket_.GetFd()) {  // handle new connection
-        auto conn_sock = listen_socket_.Accept(cli_addr);
-
-        std::cout << "[+] connected with " << cli_addr.ToIpPort() << std::endl;
-
-        epoll_.Add(conn_sock, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP);
-      } else if ((event.events & EPOLLIN) != 0U) {  // handle read
-        for (;;) {
-          buf.Clear();
-          auto n = read(event.data.fd, buf.BeginWrite(), buf.WritableSize());
-          if (n <= 0) {
-            break;
-          }
-          std::cout << "[+] read " << n << " bytes" << std::endl;
-          write(event.data.fd, buf.Peek(), buf.ReadableSize());
-        }
-      } else {
-        std::cout << "[+] unexpected" << std::endl;
-      }
-      // check if the connection is closing
-      if ((event.events & (EPOLLRDHUP | EPOLLHUP)) != 0U) {
-        std::cout << "[+] connection closed" << std::endl;
-        epoll_.Remove(event.data.fd);
-        close(event.data.fd);
-        continue;
-      }
-    }
-  }
+  event_loop_->RunInLoop([this]() {
+    running_ = true;
+    acceptor_->Listen();
+  });
 }
 
-void TcpServer::Stop() { running_.store(false, std::memory_order_release); }
+void TcpServer::Stop() {
+  running_.store(false, std::memory_order_release);
+  if (event_loop_->IsInLoopThread()) {
+    acceptor_.reset();
+    for (auto const &connection : connections_) {
+      connection->ForceClose();
+    }
+  } else {
+    std::promise<void> pro;
+    auto               f = pro.get_future();
+    event_loop_->QueueInLoop([this, &pro]() {
+      acceptor_.reset();
+      for (auto const &connection : connections_) {
+        connection->ForceClose();
+      }
+      pro.set_value();
+    });
+    f.get();
+  }
+  event_loop_group_.reset();
+}
+
+void TcpServer::HandleNewConnection(int fd, InetAddr const &addr) {
+  EventLoop *io_loop = nullptr;
+  if (event_loop_group_) {
+    io_loop = event_loop_group_->GetNextEventLoop();
+  }
+  if (io_loop == nullptr) {
+    io_loop = event_loop_;
+  }
+
+  auto new_conn = std::make_shared<TcpConnection>(io_loop, fd, InetAddr{Socket::GetLocalAddr(fd)}, addr);
+  new_conn->SetReceiveMessageHandler(receive_message_handler_);
+  new_conn->SetCloseHandler([this](std::shared_ptr<TcpConnection> const &conn) { HandleConnectionClosed(conn); });
+  new_conn->SetWriteCompleteHandler([this](std::shared_ptr<TcpConnection> const &conn) {
+    if (write_complete_handler_) {
+      write_complete_handler_(conn);
+    }
+  });
+  new_conn->SetConnectionHandler([this](std::shared_ptr<TcpConnection> const &conn) {
+    if (connection_handler_) {
+      connection_handler_(conn);
+    }
+  });
+
+  connections_.emplace(new_conn);
+  new_conn->InformConnected();
+}
+
+void TcpServer::HandleConnectionClosed(std::shared_ptr<TcpConnection> const &conn) {
+  if (event_loop_->IsInLoopThread()) {
+    auto  id   = connections_.erase(conn);
+    auto *loop = conn->GetEventLoop();
+    loop->QueueInLoop([conn, id] { conn->ConnectionDestroyed(); });
+  } else {
+    event_loop_->QueueInLoop([this, conn] {
+      auto  id   = connections_.erase(conn);
+      auto *loop = conn->GetEventLoop();
+      loop->QueueInLoop([conn, id] { conn->ConnectionDestroyed(); });
+    });
+  }
+}
 
 }  // namespace simple_http::net

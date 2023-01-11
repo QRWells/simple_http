@@ -22,8 +22,7 @@ InetAddr Socket::GetLocalAddr() const { return GetLocalAddr(fd_); }
 InetAddr Socket::GetPeerAddr() const { return GetPeerAddr(fd_); }
 
 InetAddr Socket::GetLocalAddr(int fd) {
-  struct sockaddr_in localaddr;
-  ::memset(&localaddr, 0, sizeof(localaddr));
+  struct sockaddr_in localaddr {};
 
   auto addrlen = static_cast<socklen_t>(sizeof localaddr);
 
@@ -34,8 +33,7 @@ InetAddr Socket::GetLocalAddr(int fd) {
 }
 
 InetAddr Socket::GetPeerAddr(int fd) {
-  struct sockaddr_in peeraddr;
-  ::memset(&peeraddr, 0, sizeof(peeraddr));
+  struct sockaddr_in peeraddr {};
 
   auto addrlen = static_cast<socklen_t>(sizeof peeraddr);
 
@@ -46,12 +44,21 @@ InetAddr Socket::GetPeerAddr(int fd) {
   return InetAddr{peeraddr};
 }
 
-int Socket::Accept(InetAddr &peer_addr) const noexcept {
-  struct sockaddr_in addr;
-  socklen_t          size = sizeof(addr);
-  memset(&addr, 0, sizeof(addr));
+int Socket::GetSocketError() const {
+  int  optval;
+  auto optlen = static_cast<socklen_t>(sizeof optval);
 
-  int connfd = ::accept4(fd_, (struct sockaddr *)&addr, &size, SOCK_NONBLOCK | SOCK_CLOEXEC);
+  if (::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &optval, &optlen) < 0) {
+    return errno;
+  }
+  return optval;
+}
+
+int Socket::Accept(InetAddr &peer_addr) const noexcept {
+  struct sockaddr_in addr {};
+  socklen_t          size = sizeof(addr);
+
+  int connfd              = ::accept4(fd_, (struct sockaddr *)&addr, &size, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
   if (connfd >= 0) {
     peer_addr.SetSockAddr(addr);

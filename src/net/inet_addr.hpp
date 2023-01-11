@@ -16,7 +16,6 @@ namespace simple_http::net {
 struct InetAddr {
  public:
   InetAddr(uint16_t port = 0, bool loopback_only = false) : is_valid_(true) {
-    memset(&addr_, 0, sizeof(addr_));
     addr_.sin_family      = AF_INET;
     in_addr_t ip          = loopback_only ? kInaddrLoopback : kInaddrAny;
     addr_.sin_addr.s_addr = htonl(ip);
@@ -24,7 +23,6 @@ struct InetAddr {
   }
 
   InetAddr(std::string_view ip, uint16_t port) : is_valid_(true) {
-    memset(&addr_, 0, sizeof(addr_));
     addr_.sin_family = AF_INET;
     addr_.sin_port   = htons(port);
     if (::inet_pton(AF_INET, ip.data(), &addr_.sin_addr) <= 0) {

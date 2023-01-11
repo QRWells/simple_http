@@ -21,6 +21,7 @@ struct Socket : public simple_http::util::NonCopyable {
 
   [[nodiscard]] InetAddr GetLocalAddr() const;
   [[nodiscard]] InetAddr GetPeerAddr() const;
+  [[nodiscard]] int      GetSocketError() const;
 
   [[nodiscard]] static InetAddr GetLocalAddr(int fd);
   [[nodiscard]] static InetAddr GetPeerAddr(int fd);
