@@ -36,7 +36,7 @@ constexpr inline auto kBufSize = 16;
 
 struct TcpServer : public simple_http::util::NonCopyable {
  public:
-  TcpServer(EventLoop* event_loop, InetAddr const& addr, size_t thread_num = std::thread::hardware_concurrency());
+  TcpServer(EventLoop* event_loop, InetAddr const& addr);
   ~TcpServer();
 
   void Start();

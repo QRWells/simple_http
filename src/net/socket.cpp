@@ -45,7 +45,7 @@ InetAddr Socket::GetPeerAddr(int fd) {
 }
 
 int Socket::GetSocketError() const {
-  int  optval;
+  int  optval = 0;
   auto optlen = static_cast<socklen_t>(sizeof optval);
 
   if (::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &optval, &optlen) < 0) {
@@ -58,7 +58,7 @@ int Socket::Accept(InetAddr &peer_addr) const noexcept {
   struct sockaddr_in addr {};
   socklen_t          size = sizeof(addr);
 
-  int connfd              = ::accept4(fd_, (struct sockaddr *)&addr, &size, SOCK_NONBLOCK | SOCK_CLOEXEC);
+  int connfd = ::accept4(fd_, reinterpret_cast<struct sockaddr *>(&addr), &size, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
   if (connfd >= 0) {
     peer_addr.SetSockAddr(addr);
@@ -68,8 +68,7 @@ int Socket::Accept(InetAddr &peer_addr) const noexcept {
 }
 
 void Socket::Bind(InetAddr const &addr) const {
-  int ret;
-  ret = ::bind(fd_, addr.GetSockAddr(), sizeof(sockaddr_in));
+  int ret = ::bind(fd_, addr.GetSockAddr(), sizeof(sockaddr_in));
 
   if (ret != 0) {
     throw std::runtime_error("bind error");

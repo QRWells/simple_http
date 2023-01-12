@@ -21,7 +21,7 @@
 
 namespace simple_http::net {
 
-TcpServer::TcpServer(EventLoop *event_loop, InetAddr const &addr, size_t thread_num)
+TcpServer::TcpServer(EventLoop *event_loop, InetAddr const &addr)
     : addr_(addr),
       event_loop_(event_loop),
       acceptor_(std::make_unique<Acceptor>(event_loop, addr_, true, true)),

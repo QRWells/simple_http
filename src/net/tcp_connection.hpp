@@ -36,20 +36,20 @@ struct TcpConnection : public simple_http::util::NonCopyable, std::enable_shared
   TcpConnection(EventLoop *event_loop, int fd, InetAddr const &local_addr, InetAddr const &peer_addr);
   ~TcpConnection() = default;
 
-  InetAddr const           &GetLocalAddr() const { return local_addr_; }
-  InetAddr const           &GetPeerAddr() const { return peer_addr_; }
-  EventLoop                *GetEventLoop() const { return event_loop_; }
-  std::shared_ptr<std::any> GetContext() const { return context_; }
+  InetAddr const &GetLocalAddr() const { return local_addr_; }
+  InetAddr const &GetPeerAddr() const { return peer_addr_; }
+  EventLoop      *GetEventLoop() const { return event_loop_; }
+  std::any const &GetContext() const { return context_; }
+  std::any       &GetContext() { return context_; }
 
   void Send(std::string_view msg);
   void Send(util::MsgBuffer &msg);
 
-  void SetContext(std::shared_ptr<std::any> const &context) { context_ = context; }
-  void SetContext(std::shared_ptr<std::any> &&context) { context_ = std::move(context); }
+  void SetContext(std::any const &context) { context_ = context; }
 
   bool IsConnected() const { return state_ == ConnectionState::kConnected; }
   bool IsDisconnected() const { return state_ == ConnectionState::kDisconnected; }
-  bool HasContext() const { return context_ != nullptr; }
+  bool HasContext() const { return context_.has_value(); }
 
   void Shutdown();
   void ForceClose();
@@ -59,10 +59,10 @@ struct TcpConnection : public simple_http::util::NonCopyable, std::enable_shared
  private:
   friend class TcpServer;
 
-  EventLoop                *event_loop_{nullptr};
-  std::unique_ptr<Channel>  channel_{nullptr};
-  std::unique_ptr<Socket>   socket_{nullptr};
-  std::shared_ptr<std::any> context_{nullptr};
+  EventLoop               *event_loop_{nullptr};
+  std::unique_ptr<Channel> channel_{nullptr};
+  std::unique_ptr<Socket>  socket_{nullptr};
+  std::any                 context_{};
 
   util::MsgBuffer                             read_buffer_{};
   std::list<std::shared_ptr<util::MsgBuffer>> write_buffer_{};

@@ -108,7 +108,7 @@ void Epoll::Update(EpollCtrlOperation operation, Channel *channel) const {
   event.events   = channel->GetEvents();
   event.data.ptr = channel;
   int fd         = channel->GetFd();
-  if (operation == EpollCtrlOperation::kAdd) {
+  if (operation != EpollCtrlOperation::kDel) {
     event.events |= EPOLLET;
   }
   if (::epoll_ctl(epoll_fd_, (int)operation, fd, &event) < 0) {
