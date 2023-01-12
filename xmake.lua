@@ -8,6 +8,7 @@ add_includedirs("src")
 
 set_toolchains("gcc")
 set_languages("c++20")
+set_plat("linux")
 
 includes("test")
 includes("src")

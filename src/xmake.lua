@@ -1,9 +1,9 @@
-target("shared_lib")
+target("simple_http")
   set_kind("shared")
 
   add_files("**.cpp")
 
-target("static_lib")
+target("simple_http")
   set_kind("static")
 
   add_files("**.cpp")
