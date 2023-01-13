@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 
   InetAddr addr{8888};
 
-  TcpServer server{thread.GetLoop(), {8888}};
+  TcpServer server{thread.GetLoop(), addr};
   server.SetEventLoopGroupNum(2);
   server.Start();
   thread.Wait();

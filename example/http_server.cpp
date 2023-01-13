@@ -9,10 +9,6 @@
  *
  */
 
-#include <condition_variable>
-#include <iostream>
-#include <mutex>
-
 #include <net/http/http_server.hpp>
 
 using namespace std;
@@ -25,12 +21,12 @@ int main(int argc, char* argv[]) {
 
   InetAddr addr{8888};
 
-  http::HttpServer server{thread.GetLoop(), {8888}};
+  http::HttpServer server{thread.GetLoop(), addr};
 
   server.Get("hello", [](HttpRequest const& req, HttpResponse& resp) {
     resp.SetStatusCode(200);
     resp.SetStatusMessage("OK");
-    resp.SetBody("Hello World!");
+    resp.SetBody("Hello World!\n");
   });
 
   server.Start();
