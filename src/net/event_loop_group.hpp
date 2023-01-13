@@ -36,11 +36,8 @@ struct EventLoopGroup : public simple_http::util::NonCopyable {
 
   EventLoop* GetNextEventLoop() {
     if (!event_loops_.empty()) {
-      auto  next = next_event_loop_.fetch_add(1);
+      auto  next = next_event_loop_.fetch_add(1) % event_loops_.size();
       auto* loop = event_loops_[next]->GetLoop();
-      if (next_event_loop_ >= event_loops_.size()) {
-        next_event_loop_.store(0);
-      }
       return loop;
     }
     return nullptr;

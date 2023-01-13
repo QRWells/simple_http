@@ -61,7 +61,7 @@ void EventLoop::Start() {
 
   while (!quit_.load(std::memory_order_acquire)) {
     active_channels_.clear();
-    epoller_->Select(10000, active_channels_);
+    epoller_->Select(500, active_channels_);
     for (auto const& channel : active_channels_) {
       current_active_channel_ = channel;
       current_active_channel_->HandleEvent();
