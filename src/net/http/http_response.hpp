@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -21,6 +22,13 @@ struct HttpResponse {
   void SetCloseConnection(bool on) { closeConnection_ = on; }
   void SetContentType(std::string_view content_type) { SetHeader("Content-Type", content_type); }
   void SetBody(std::string_view body) { body_ = body; }
+  void SetFileBody(std::string_view file_path) {
+    std::fstream fs(file_path.data(), std::ios::in | std::ios::binary);
+    if (!fs.is_open()) {
+      return;
+    }
+    body_.assign(std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>());
+  }
 
   [[nodiscard]] bool IsCloseConnection() const { return closeConnection_; }
 

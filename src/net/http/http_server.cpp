@@ -1,5 +1,10 @@
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "http_context.hpp"
 #include "http_server.hpp"
@@ -16,11 +21,37 @@ void DefaultHttpCallback(HttpRequest const& /*unused*/, HttpResponse& resp) {
   resp.SetCloseConnection(true);
 }
 
-HttpServer::HttpServer(EventLoop* loop, InetAddr const& addr) : tcp_server_{loop, addr} {
+HttpServer::HttpServer(EventLoop* loop, InetAddr const& addr, bool web_api)
+    : web_api_{web_api}, tcp_server_{loop, addr} {
   tcp_server_.OnConnection([this](std::shared_ptr<TcpConnection> const& conn) { OnConnection(conn.get()); });
   tcp_server_.OnReceiveMessage([this](std::shared_ptr<TcpConnection> const& conn, MsgBuffer& buf) {
     OnMessage(conn.get(), buf, std::chrono::steady_clock::now());
   });
+  if (!web_api) {
+    struct stat st;
+    if (stat("wwwroot", &st) == -1) {
+      mkdir("wwwroot", 0755);
+      // create index.html
+      std::ofstream ofs("wwwroot/index.html", std::ios::trunc);
+      ofs << R"(<html>
+<head>
+<title>This is title</title>
+</head>
+<body>
+<h1>Hello</h1>
+</body>
+</html>)";
+      ofs.close();
+    }
+    ::chdir("wwwroot");
+
+    Get("", [](HttpRequest const& /*unused*/, HttpResponse& resp) {
+      resp.SetStatusCode(StatusCode::k200Ok);
+      resp.SetStatusMessage("OK");
+      resp.SetContentType("text/html");
+      resp.SetFileBody("index.html");
+    });
+  }
 }
 
 void HttpServer::Start() { tcp_server_.Start(); }
@@ -67,7 +98,25 @@ bool HttpServer::Route(HttpRequest const& req, HttpResponse& resp) {
   auto const& method = req.GetMethod();
 
   if (method == Method::kGet) {
-    return Dispatch(req, resp, get_handlers_);
+    if (web_api_ || req.GetPath() == "/") {
+      return Dispatch(req, resp, get_handlers_);
+    }
+
+    std::ifstream         file(req.GetPath(), std::ios::binary);
+    std::filesystem::path path(req.GetPath());
+    path.has_extension();
+    if (file.is_open()) {
+      resp.SetStatusCode(StatusCode::k200Ok);
+      resp.SetStatusMessage("OK");
+      if (path.has_extension() && kMimeTypes.contains(path.extension().string())) {
+        resp.SetContentType(kMimeTypes.at("." + path.extension().string()));
+      } else {
+        resp.SetContentType("text/plain");
+      }
+      resp.SetFileBody(req.GetPath());
+      return true;
+    }
+    return false;
   }
 
   if (method == Method::kPost) {

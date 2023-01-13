@@ -21,7 +21,7 @@ using HttpHandlers = std::vector<std::pair<std::regex, HttpHandler>>;
 
 struct HttpServer final : public util::NonCopyable {
  public:
-  HttpServer(EventLoop* loop, InetAddr const& addr);
+  HttpServer(EventLoop* loop, InetAddr const& addr, bool web_api = true);
 
   ~HttpServer() = default;
 
@@ -36,6 +36,7 @@ struct HttpServer final : public util::NonCopyable {
   void SetEventLoopGroupNum(size_t num) { tcp_server_.SetEventLoopGroupNum(num); }
 
  private:
+  bool      web_api_{true};
   TcpServer tcp_server_;
 
   HttpHandlers get_handlers_;
