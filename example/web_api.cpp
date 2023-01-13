@@ -1,9 +1,9 @@
 /**
- * @file http_server.cpp
+ * @file web_api.cpp
  * @author Qirui Wang (qirui.wang@moegi.waseda.jp)
  * @brief
  * @version 0.1
- * @date 2023-01-12
+ * @date 2023-01-13
  *
  * @copyright Copyright (c) 2023
  *
@@ -21,7 +21,13 @@ int main(int argc, char* argv[]) {
 
   InetAddr addr{8888};
 
-  http::HttpServer server{thread.GetLoop(), addr, false};
+  http::HttpServer server{thread.GetLoop(), addr};
+
+  server.Get("hello", [](HttpRequest const& req, HttpResponse& resp) {
+    resp.SetStatusCode(200);
+    resp.SetStatusMessage("OK");
+    resp.SetBody("Hello World!\n");
+  });
 
   server.Start();
 

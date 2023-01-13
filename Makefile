@@ -52,7 +52,7 @@ all: lib tests examples
 
 ## Exmaples
 
-examples: example_http_server example_tcp_server
+examples: example_http_server example_tcp_server example_web_api
 
 example_http_server: $(EXAMPLE_OBJ_DIR)/http_server.o $(A_LIB)
 	@mkdir -p $(EXAMPLE_OUT_DIR)
@@ -61,6 +61,10 @@ example_http_server: $(EXAMPLE_OBJ_DIR)/http_server.o $(A_LIB)
 example_tcp_server: $(EXAMPLE_OBJ_DIR)/tcp_server.o $(A_LIB)
 	@mkdir -p $(EXAMPLE_OUT_DIR)
 	$(LD) -o $(EXAMPLE_OUT_DIR)/$@ $< $(example_LDFLAGS) 
+
+example_web_api: $(EXAMPLE_OBJ_DIR)/web_api.o $(A_LIB)
+	@mkdir -p $(EXAMPLE_OUT_DIR)
+	$(LD) -o $(EXAMPLE_OUT_DIR)/$@ $< $(example_LDFLAGS)
 
 $(EXAMPLE_OBJ_DIR)/%.o: $(EXAMPLE_DIR)/%.cpp
 	@echo "Compiling $<" ...
