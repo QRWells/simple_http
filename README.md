@@ -16,7 +16,7 @@ The library will be built in the `./build/lib` directory.
 gcc -std=c++20 -lsimple_http -lpthread -o http_server http_server.cpp
 ```
 ## Example
-All examples are in the [examples](examples) directory.
+All examples are in the [examples](https://github.com/QRWells/simple_http/tree/v0.1.0/example) directory.
 
 ### HTTP Server
 
