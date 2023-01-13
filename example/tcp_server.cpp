@@ -9,12 +9,7 @@
  *
  */
 
-#include <condition_variable>
-#include <iostream>
-#include <mutex>
-
 #include <net/event_loop_thread.hpp>
-#include <net/inet_addr.hpp>
 #include <net/tcp_server.hpp>
 
 using namespace std;
@@ -24,7 +19,7 @@ int main(int argc, char *argv[]) {
   EventLoopThread thread;
   thread.Run();
 
-  InetAddr addr{8888};
+  InetAddr addr{1234};
 
   TcpServer server{thread.GetLoop(), addr};
   server.SetEventLoopGroupNum(2);

@@ -22,7 +22,7 @@ void DefaultHttpCallback(HttpRequest const& /*unused*/, HttpResponse& resp) {
   resp.SetCloseConnection(true);
 }
 
-HttpServer::HttpServer(EventLoop* loop, InetAddr const& addr, bool web_api)
+HttpServer::HttpServer(EventLoop* loop, bool web_api, InetAddr const& addr)
     : web_api_{web_api}, tcp_server_{loop, addr} {
   tcp_server_.OnConnection([this](std::shared_ptr<TcpConnection> const& conn) { OnConnection(conn.get()); });
   tcp_server_.OnReceiveMessage([this](std::shared_ptr<TcpConnection> const& conn, MsgBuffer& buf) {

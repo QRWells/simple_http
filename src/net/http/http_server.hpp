@@ -21,7 +21,7 @@ using HttpHandlers = std::vector<std::pair<std::regex, HttpHandler>>;
 
 struct HttpServer final : public util::NonCopyable {
  public:
-  HttpServer(EventLoop* loop, InetAddr const& addr, bool web_api = true);
+  HttpServer(EventLoop* loop, bool web_api = true, InetAddr const& addr = {80});
 
   ~HttpServer() = default;
 

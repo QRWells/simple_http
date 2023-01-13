@@ -19,9 +19,7 @@ int main(int argc, char* argv[]) {
   EventLoopThread thread;
   thread.Run();
 
-  InetAddr addr{8888};
-
-  http::HttpServer server{thread.GetLoop(), addr};
+  http::HttpServer server{thread.GetLoop()};
 
   server.Get("hello", [](HttpRequest const& req, HttpResponse& resp) {
     resp.SetStatusCode(200);
