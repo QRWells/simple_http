@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 
   http::HttpServer server{thread.GetLoop(), {8888}};
 
-  server.Get("/hello", [](HttpRequest const& req, HttpResponse& resp) {
+  server.Get("hello", [](HttpRequest const& req, HttpResponse& resp) {
     resp.SetStatusCode(200);
     resp.SetStatusMessage("OK");
     resp.SetBody("Hello World!");

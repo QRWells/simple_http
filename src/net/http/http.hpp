@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <map>
+#include <sstream>
 #include <string_view>
 
 #include <cctype>
@@ -92,7 +93,7 @@ using Headers = std::map<std::string, std::string, Ci>;
 
 inline constexpr bool HasCrlf(std::string_view s) {
   // return s.find('\r') != std::string_view::npos || s.find('\n') != std::string_view::npos;
-  auto const *p = s.data();
+  auto const* p = s.data();
   while (*p != 0) {
     if (*p == '\r' || *p == '\n') {
       return true;
@@ -104,14 +105,38 @@ inline constexpr bool HasCrlf(std::string_view s) {
 
 inline static constexpr auto kCrlf = "\r\n";
 
-inline constexpr auto RemoveTrailingSlash(std::string_view s) {
+inline constexpr bool EnsureHeadingSlash(std::string_view& s) {
   if (s.empty()) {
-    return s;
+    return false;
   }
-  while (s.back() == '/') {
+  int i = 0;
+  while (s[i] == '/') {
+    i++;
+  }
+  if (i > 1) {
+    s.remove_prefix(i - 1);
+    return true;
+  }
+  return false;
+}
+
+inline constexpr void RemoveTrailingSlash(std::string_view& s) {
+  if (s.empty()) {
+    return;
+  }
+  while (s.ends_with('/')) {
     s.remove_suffix(1);
   }
-  return s;
+}
+
+inline auto NormalizePath(std::string_view path) {
+  std::stringstream ss;
+  if (!EnsureHeadingSlash(path)) {
+    ss << '/';
+  }
+  RemoveTrailingSlash(path);
+  ss << path;
+  return ss.str();
 }
 
 }  // namespace simple_http::net::http

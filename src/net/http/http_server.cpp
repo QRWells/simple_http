@@ -104,23 +104,19 @@ bool HttpServer::Dispatch(HttpRequest const& req, HttpResponse& resp, HttpHandle
 }
 
 void HttpServer::Get(std::string_view path, HttpHandler handler) {
-  path = RemoveTrailingSlash(path);
-  get_handlers_.emplace_back(std::regex{path.data()}, std::move(handler));
+  get_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
 }
 
 void HttpServer::Post(std::string_view path, HttpHandler handler) {
-  path = RemoveTrailingSlash(path);
-  post_handlers_.emplace_back(std::regex{path.data()}, std::move(handler));
+  post_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
 }
 
 void HttpServer::Put(std::string_view path, HttpHandler handler) {
-  path = RemoveTrailingSlash(path);
-  put_handlers_.emplace_back(std::regex{path.data()}, std::move(handler));
+  put_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
 }
 
 void HttpServer::Delete(std::string_view path, HttpHandler handler) {
-  path = RemoveTrailingSlash(path);
-  delete_handlers_.emplace_back(std::regex{path.data()}, std::move(handler));
+  delete_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
 }
 
 }  // namespace simple_http::net::http
