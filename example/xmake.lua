@@ -1,5 +1,5 @@
 set_kind("binary")
-add_deps("simple_http")
+add_deps("simple_http_static")
 add_syslinks("pthread")
 
 target("example_tcp_server")
