@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <string_view>
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -102,18 +103,23 @@ bool HttpServer::Route(HttpRequest const& req, HttpResponse& resp) {
       return Dispatch(req, resp, get_handlers_);
     }
 
-    std::ifstream         file(req.GetPath(), std::ios::binary);
-    std::filesystem::path path(req.GetPath());
-    path.has_extension();
+    std::string_view path = req.GetPath();
+    if (path[0] == '/') {
+      path.remove_prefix(1);
+    }
+
+    std::ifstream         file(path.data(), std::ios::binary);
+    std::filesystem::path file_path(path.data());
     if (file.is_open()) {
       resp.SetStatusCode(StatusCode::k200Ok);
       resp.SetStatusMessage("OK");
-      if (path.has_extension() && kMimeTypes.contains(path.extension().string())) {
-        resp.SetContentType(kMimeTypes.at("." + path.extension().string()));
+      auto extension = file_path.extension().string();
+      if (file_path.has_extension() && kMimeTypes.contains(extension)) {
+        resp.SetContentType(kMimeTypes.at(extension));
       } else {
         resp.SetContentType("text/plain");
       }
-      resp.SetFileBody(req.GetPath());
+      resp.SetFileBody(path);
       return true;
     }
     return false;
