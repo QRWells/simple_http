@@ -28,10 +28,10 @@ struct HttpServer final : public util::NonCopyable {
   void Start();
   void Stop();
 
-  void Get(std::string_view path, HttpHandler handler);
-  void Post(std::string_view path, HttpHandler handler);
-  void Put(std::string_view path, HttpHandler handler);
-  void Delete(std::string_view path, HttpHandler handler);
+  HttpServer& Get(std::string_view path, HttpHandler handler);
+  HttpServer& Post(std::string_view path, HttpHandler handler);
+  HttpServer& Put(std::string_view path, HttpHandler handler);
+  HttpServer& Delete(std::string_view path, HttpHandler handler);
 
   void SetEventLoopGroupNum(size_t num) { tcp_server_.SetEventLoopGroupNum(num); }
 

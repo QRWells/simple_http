@@ -103,20 +103,24 @@ bool HttpServer::Dispatch(HttpRequest const& req, HttpResponse& resp, HttpHandle
   return false;
 }
 
-void HttpServer::Get(std::string_view path, HttpHandler handler) {
+HttpServer& HttpServer::Get(std::string_view path, HttpHandler handler) {
   get_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
+  return *this;
 }
 
-void HttpServer::Post(std::string_view path, HttpHandler handler) {
+HttpServer& HttpServer::Post(std::string_view path, HttpHandler handler) {
   post_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
+  return *this;
 }
 
-void HttpServer::Put(std::string_view path, HttpHandler handler) {
+HttpServer& HttpServer::Put(std::string_view path, HttpHandler handler) {
   put_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
+  return *this;
 }
 
-void HttpServer::Delete(std::string_view path, HttpHandler handler) {
+HttpServer& HttpServer::Delete(std::string_view path, HttpHandler handler) {
   delete_handlers_.emplace_back(std::regex{NormalizePath(path)}, std::move(handler));
+  return *this;
 }
 
 }  // namespace simple_http::net::http
