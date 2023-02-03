@@ -57,7 +57,6 @@ void Epoll::Select(int timeout_ms, ChannelList &active_channels) {
   if (num_events > 0) {
     for (int i = 0; i < num_events; ++i) {
       auto *channel = static_cast<Channel *>(events_[i].data.ptr);
-      auto  fd      = channel->GetFd();
       channel->SetOccurredEvents(static_cast<int>(events_[i].events));
       active_channels.emplace_back(channel);
     }

@@ -77,7 +77,7 @@ void TcpConnection::SendInLoop(std::string_view msg) {
   size_t  remain_len  = msg.size();
   ssize_t send_len    = 0;
   bool    fault_error = false;
-  if (!channel_->IsWriting() && write_buffer_.empty()) {
+  if (!channel_->IsWritingEnabled() && write_buffer_.empty()) {
     send_len = ::write(socket_->GetFd(), msg.data(), msg.size());
     if (send_len >= 0) {
       remain_len = msg.size() - send_len;
@@ -98,7 +98,7 @@ void TcpConnection::SendInLoop(std::string_view msg) {
       write_buffer_.emplace_back(std::make_unique<util::MsgBuffer>());
     }
     write_buffer_.back()->Write(msg.data() + send_len, remain_len);
-    if (!channel_->IsWriting()) {
+    if (!channel_->IsWritingEnabled()) {
       channel_->EnableWriting();
     }
   }
@@ -108,7 +108,7 @@ void TcpConnection::Shutdown() {
   event_loop_->RunInLoop([this_ptr = shared_from_this()]() {
     if (this_ptr->state_ == ConnectionState::kConnected) {
       this_ptr->state_ = ConnectionState::kDisconnecting;
-      if (!this_ptr->channel_->IsWriting()) {
+      if (!this_ptr->channel_->IsWritingEnabled()) {
         this_ptr->socket_->Shutdown();
       }
     }
@@ -169,7 +169,7 @@ void TcpConnection::HandleRead() {
   }
 }
 void TcpConnection::HandleWrite() {
-  if (!channel_->IsWriting()) {
+  if (!channel_->IsWritingEnabled()) {
     // TODO: log error
     return;
   }

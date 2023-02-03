@@ -63,6 +63,7 @@ struct Channel : public ::simple_http::util::NonCopyable, public std::enable_sha
     Update();
   }
 
+  [[nodiscard]] bool IsNoneEvent() const { return enabled_events_ == kNoneEvent; }
   [[nodiscard]] bool IsWritingEnabled() const { return (enabled_events_ & kWriteEvent) != 0U; }
   [[nodiscard]] bool IsReadingEnabled() const { return (enabled_events_ & kReadEvent) != 0U; }
 
@@ -76,10 +77,6 @@ struct Channel : public ::simple_http::util::NonCopyable, public std::enable_sha
 
   [[nodiscard]] uint32_t GetOccurredEvents() const { return occurred_events_; }
   void                   SetOccurredEvents(uint32_t occurred_events) { occurred_events_ = occurred_events; }
-
-  [[nodiscard]] bool IsNoneEvent() const { return enabled_events_ == kNoneEvent; }
-  [[nodiscard]] bool IsReading() const { return (enabled_events_ & EPOLLIN) != 0U; }
-  [[nodiscard]] bool IsWriting() const { return (enabled_events_ & EPOLLOUT) != 0U; }
 
  private:
   friend class EventLoop;

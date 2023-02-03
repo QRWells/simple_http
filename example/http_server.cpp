@@ -19,7 +19,9 @@ int main(int argc, char* argv[]) {
   EventLoopThread thread;
   thread.Run();
 
-  http::HttpServer server{thread.GetLoop(), false};
+  http::HttpServer server{thread.GetLoop(), false, 12345};
+
+  server.SetEventLoopGroupNum(2);  // Set the number of worker event loops
 
   server.Start();
 

@@ -24,10 +24,10 @@ struct Acceptor : public simple_http::util::NonCopyable {
   void Listen();
 
  private:
-  Socket               socket_;
-  InetAddr             addr_;
-  EventLoop           *loop_;
-  Channel              channel_;
-  NewConnectionHandler new_connection_handler_;
+  Socket                   socket_;
+  InetAddr                 addr_;
+  EventLoop               *loop_;
+  std::unique_ptr<Channel> channel_;
+  NewConnectionHandler     new_connection_handler_;
 };
 }  // namespace simple_http::net
